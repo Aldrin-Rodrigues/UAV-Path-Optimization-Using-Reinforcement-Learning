@@ -2,48 +2,8 @@ import pybullet as p
 import pybullet_data
 import random
 import time
+import numpy as np
 # from drone_control import drone_control
-
-
-def check_keyboard_and_control(drone_id):
-    print("Checking keyboard")
-    force_magnitude = 10.0
-    lift_force = 100.0
-    yaw_torque = 10.0
-
-    keys = p.getKeyboardEvents()
-    force_x, force_y, force_z = 0, 0, 0
-    torque_yaw = 0
-    print(keys)
-    # if ord('w') in keys: force_y = force_magnitude
-    # if ord('s') in keys: force_y = -force_magnitude
-    # if ord('a') in keys: force_x = -force_magnitude
-    # if ord('d') in keys: force_x = force_magnitude
-    # if ord('q') in keys: torque_yaw = yaw_torque
-    # if ord('e') in keys: torque_yaw = -yaw_torque
-    # if ord('i') in keys: force_z = lift_force
-    # if ord('k') in keys: force_z = -lift_force
-    if 65297 in keys:
-        force_z = lift_force
-    if 65298 in keys:
-        force_z = -lift_force
-    if 65295 in keys:
-        force_x = -force_magnitude
-    if 65296 in keys:
-        force_x = force_magnitude
-    if ord('q') in keys:
-        torque_yaw = yaw_torque
-    if ord('e') in keys:
-        torque_yaw = -yaw_torque
-    if ord('a') in keys:
-        force_y = force_magnitude
-    if ord('d') in keys:
-        force_y = -force_magnitude 
-    if keys is not None:
-        # print(f"Force: {force_x, force_y, force_z}, Torque: {torque_yaw}")
-        pass
-    p.applyExternalForce(drone_id, -1, [force_x, force_y, force_z], [0, 0, 0], p.WORLD_FRAME)
-    p.applyExternalTorque(drone_id, -1, [0, 0, torque_yaw], p.WORLD_FRAME)
 
 # Connect to PyBullet
 physicsClient = p.connect(p.GUI)
@@ -53,11 +13,47 @@ p.setAdditionalSearchPath('/Users/aldrinvrodrigues/Engineering/SEM-5/Kodikon-4.0
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
 # Set gravity
-p.setGravity(0, 0, -9.81)
+p.setGravity(0, 0, 0)
 
 # Define asset dimensions (assuming uniform size for blocks and cubes)
 BLOCK_DIMENSIONS = [1, 1, 1]  # width, length, height for block
 CUBE_DIMENSIONS = [1, 1, 1]    # width, length, height for cube
+    
+    
+    
+def get_next_coordinates():
+    # Placeholder for your RL algorithm to get next coordinates
+    # Here, we're just returning random coordinates for demonstration
+    
+    return np.random.uniform(-5, 5), np.random.uniform(-5, 5)
+    
+    
+
+def move_drone_to_target(drone_id, target_x, target_y, speed=0.1):
+    current_position = p.getBasePositionAndOrientation(drone_id)[0]
+    current_x, current_y = current_position[0], current_position[1]
+
+    # Move to target coordinates smoothly
+    while True:
+        # Calculate the distance to the target
+        distance = np.sqrt((target_x - current_x)**2 + (target_y - current_y)**2)
+
+        # If we are close enough to the target, break
+        if distance < 0.1:
+            break
+
+        # Calculate the new position
+        current_x += speed * (target_x - current_x) / distance
+        current_y += speed * (target_y - current_y) / distance
+
+        # Update the drone's position
+        p.resetBasePositionAndOrientation(drone_id, [current_x, current_y, 0.1], [0, 0, 0, 1])
+        
+        # Step the simulation
+        p.stepSimulation()
+        time.sleep(1./240.)
+
+
 
 # Function to check for overlap
 def is_overlapping(new_position, existing_positions, dimensions):
@@ -75,14 +71,11 @@ def is_overlapping(new_position, existing_positions, dimensions):
             return True
     return False
 
+
 # Define positions for city assets using unique names but referencing the same URDF
 assets = {
     "plane": ([-5, -5, -0.1], [0, 0, 0]),
     "stadium": ([0, 0, 0], [0, 0, 0]),
-    # "block1": ([0, 0, 0], [0, 0, 0]),
-    # "block2": ([2, -2, 0], [0, 0, 0]),
-    # "block3": ([-2, 3, 0], [0, 0, 0]),
-    # "block4": ([1, 4, 0], [0, 0, 0]),
     "cube1": ([3, 0, 1], [0, 0, 0]),
     "cube2": ([3, 1, 1], [0, 0, 0]),
     "cube3": ([-3, -2, 1], [0, 0, 0]),
@@ -91,21 +84,11 @@ assets = {
     "cf2x" : ([0, 0, 0], [0, 0, 0]),
 }
 
-
-
 # Store existing positions
 existing_positions = [assets[asset][0] for asset in assets]
 
 # Generate additional unique blocks and cubes at random positions
 for i in range(6, 15):
-    # # Find a valid position for the block
-    # while True:
-    #     random_position = [random.uniform(-5, 5), random.uniform(-5, 5), 0]
-    #     if not is_overlapping(random_position, existing_positions, BLOCK_DIMENSIONS):
-    #         assets[f"block{i}"] = (random_position, [0, 0, 0])
-    #         existing_positions.append(random_position)
-    #         break
-
     # Find a valid position for the cube
     while True:
         random_position = [random.uniform(-5, 5), random.uniform(-5, 5), 1]
@@ -134,14 +117,7 @@ for asset_name, (position, euler_orientation) in assets.items():
         # If SDF loaded successfully, set positions for each object
         for obj_id in obj_ids:
             p.resetBasePositionAndOrientation(obj_id, position, orientation)
-
-
-# Simulation loop
-for i in range(100000):
-    if drone_id is not None:
-        check_keyboard_and_control(drone_id)
-    p.stepSimulation()
-    time.sleep(1./240.)
-
-# Disconnect from PyBullet
-p.disconnect()
+            
+while True:
+    target_x, target_y = get_next_coordinates()  # Get new target coordinates
+    move_drone_to_target(drone_id, target_x, target_y)  # Move drone to target
