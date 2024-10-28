@@ -106,7 +106,7 @@ for asset_name, (position, euler_orientation) in assets.items():
         if "cube" in asset_name:
             p.loadURDF("cube.urdf", basePosition=position, baseOrientation=orientation)
         elif "cf2x" in asset_name:
-                drone_id = p.loadURDF("cf2x.urdf", [0, 0, 0.1], baseOrientation=orientation)
+                drone_id = p.loadURDF("Drone Model + Script/cf2x.urdf", [0, 0, 0.1], baseOrientation=orientation)
                 # check_keyboard_and_control(drone_id)
         else:
             p.loadURDF(f"{asset_name}.urdf", basePosition=position, baseOrientation=orientation)
