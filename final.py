@@ -6,6 +6,7 @@ import pybullet_data
 import random
 import time
 import math
+import os
 from collections import deque
 
 class DroneCity(gym.Env):
@@ -23,9 +24,10 @@ class DroneCity(gym.Env):
         self.total_reward = 0  # Initialize total_reward
         self.prev_rewards = 0
         
+        #current wokring directory
+        urdf_path = os.path.dirname(__file__)
         
-        
-        p.setAdditionalSearchPath(r'C:\Users\bhave\Desktop\UAV-Path-Optimization-Using-Reinforcement-Learning')
+        p.setAdditionalSearchPath(urdf_path)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         
         p.setGravity(0, 0, -9.81)
